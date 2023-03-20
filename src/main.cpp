@@ -2,6 +2,12 @@
 #include <Adafruit_MAX31865.h>
 #include <ESP8266WiFi.h>
 #include "WiFiCredentials.h"
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
+
+#include <ESP8266WiFiMulti.h>
+
+ESP8266WiFiMulti WiFiMulti;
 
 Adafruit_MAX31865 thermo = Adafruit_MAX31865(2);
 
@@ -26,7 +32,7 @@ void setup()
   thermo.begin(MAX31865_4WIRE);
 }
 
-void checkFault()
+void checkTempSensorFault()
 {
   // Check and print any faults
   uint8_t fault = thermo.readFault();
@@ -77,10 +83,38 @@ void writeWifiStatus()
   }
 }
 
-void loop()
+String httpGETRequest(const char *serverName)
 {
-  writeWifiStatus();
+  WiFiClient client;
+  HTTPClient http;
 
+  // Your IP address with path or Domain name with URL path
+  http.begin(client, serverName);
+
+  // Send HTTP POST request
+  int httpResponseCode = http.GET();
+
+  String payload = "--";
+
+  if (httpResponseCode > 0)
+  {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    payload = http.getString();
+  }
+  else
+  {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  // Free resources
+  http.end();
+
+  return payload;
+}
+
+void checkTemp()
+{
   float temp = thermo.temperature(RNOMINAL, RREF);
 
   if (temp > onTemp)
@@ -100,7 +134,16 @@ void loop()
   Serial.println(turnedOn);
   Serial.println();
 
-  checkFault();
+  checkTempSensorFault();
+}
+
+void loop()
+{
+  writeWifiStatus();
+
+  checkTemp();
+
+  httpGETRequest("https://timeapi.io/api/Time/current/zone?timeZone=Europe/Budapest");
 
   delay(1000);
 }
