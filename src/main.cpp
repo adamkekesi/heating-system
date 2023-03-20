@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_MAX31865.h>
+#include <ESP8266WiFi.h>
+#include "WiFiCredentials.h"
 
 Adafruit_MAX31865 thermo = Adafruit_MAX31865(2);
 
@@ -18,6 +20,8 @@ void setup()
 
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
+
+  WiFi.begin(SSID, PASSWORD);
 
   thermo.begin(MAX31865_4WIRE);
 }
@@ -58,8 +62,24 @@ void checkFault()
   }
 }
 
+void writeWifiStatus()
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.print("Connected to ");
+    Serial.println(SSID);
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
+  else
+  {
+    Serial.println("Not connected to WiFi");
+  }
+}
+
 void loop()
 {
+  writeWifiStatus();
 
   float temp = thermo.temperature(RNOMINAL, RREF);
 
