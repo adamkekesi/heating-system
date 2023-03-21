@@ -4,8 +4,9 @@
 #include "WiFiCredentials.h"
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
-
+#include <ArduinoJson.h>
 #include <ESP8266WiFiMulti.h>
+#include "TimeService.h"
 
 ESP8266WiFiMulti WiFiMulti;
 
@@ -18,6 +19,8 @@ int turnedOn = LOW;
 
 int onTemp = 42;
 int offTemp = 41;
+
+TimeService timeService(30 * 60 * 1000);
 
 void setup()
 {
@@ -83,36 +86,6 @@ void writeWifiStatus()
   }
 }
 
-String httpGETRequest(const char *serverName)
-{
-  WiFiClient client;
-  HTTPClient http;
-
-  // Your IP address with path or Domain name with URL path
-  http.begin(client, serverName);
-
-  // Send HTTP POST request
-  int httpResponseCode = http.GET();
-
-  String payload = "--";
-
-  if (httpResponseCode > 0)
-  {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-    payload = http.getString();
-  }
-  else
-  {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCode);
-  }
-  // Free resources
-  http.end();
-
-  return payload;
-}
-
 void checkTemp()
 {
   float temp = thermo.temperature(RNOMINAL, RREF);
@@ -143,7 +116,11 @@ void loop()
 
   checkTemp();
 
-  httpGETRequest("https://timeapi.io/api/Time/current/zone?timeZone=Europe/Budapest");
+  if (WiFiMulti.run() == WL_CONNECTED)
+  {
+    timeService.onLoop();
+  }
+  Serial.println(timeService.hour);
 
-  delay(1000);
+    delay(1000);
 }
