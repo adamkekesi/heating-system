@@ -15,40 +15,43 @@ private:
 
     bool lastFetchFailed = false;
 
-    void fetchTime()
+    int fetchTime()
     {
         WiFiClient client;
         HTTPClient http;
 
-        http.begin(client, "https://timeapi.io/api/Time/current/zone?timeZone=Europe/Budapest");
+        http.begin(client, "http://timeapi.io/api/Time/current/zone?timeZone=Europe/Budapest");
 
         int httpResponseCode = http.GET();
 
-        String payload = "";
+        String payload = http.getString();
 
-        if (httpResponseCode > 0)
+        if (httpResponseCode == 200)
         {
             Serial.print("HTTP Response code: ");
             Serial.println(httpResponseCode);
-            payload = http.getString();
         }
         else
         {
             Serial.print("Error code: ");
             Serial.println(httpResponseCode);
+            Serial.println(payload);
             http.end();
-            throw new std::exception();
+             
+            return -1;
         }
         http.end();
 
-        DynamicJsonDocument doc(1024);
+        DynamicJsonDocument doc(10024);
         DeserializationError err = deserializeJson(doc, payload);
         if (err)
         {
             Serial.println("Error parsing JSON");
-            throw new std::exception();
+             
+            return -1;
         }
         hour = doc["hour"].as<int>();
+        return 0;
     }
 
 public:
@@ -64,17 +67,24 @@ public:
     void onLoop()
     {
         unsigned long currentMillis = millis();
-        if (lastFetchFailed || (currentMillis - lastFetch >= timeFetchInterval))
+
+        if (hour == -1 || lastFetchFailed || (currentMillis - lastFetch >= timeFetchInterval))
         {
             lastFetchFailed = false;
             try
             {
-                fetchTime();
+                int code = fetchTime();
+                if (code < 0)
+                {
+                    lastFetchFailed = true;
+                }
             }
             catch (...)
             {
+
                 lastFetchFailed = true;
             }
+            
             lastFetch = currentMillis;
         }
     }
