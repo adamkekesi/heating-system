@@ -129,53 +129,6 @@ void checkTemp()
   checkTempSensorFault();
 }
 
-void loop()
-{
-  timeClient.update();
-  writeWifiStatus();
-
-  checkTemp();
-
-  time_t epochTime = timeClient.getEpochTime();
-  struct tm *ptm = gmtime((time_t *)&epochTime);
-
-  if (timeClient.isTimeSet())
-  {
-    int hour = ptm->tm_hour;
-    if (ptm->tm_isdst > 0)
-    {
-      if (hour == 23)
-      {
-        hour = 0;
-      }
-      else
-      {
-        hour++;
-      }
-    }
-
-    Serial.print("Hour: ");
-    Serial.println(hour);
-
-    int minute = ptm->tm_min;
-    Serial.print("Minute: ");
-    Serial.println(minute);
-
-    if (isBetweenHours(18, 22, hour, minute))
-    {
-      onTemp5 = 78;
-      offTemp5 = 80;
-    }
-    else
-    {
-      onTemp5 = 50;
-      offTemp5 = 50.5;
-    }
-  }
-
-  delay(1000);
-}
-
 bool isBetweenHours(int h1, int h2, int hour, int minute)
 {
   if (h1 <= h2)
@@ -208,4 +161,52 @@ bool isBetweenHours(int h1, int h2, int hour, int minute)
       return false;
     }
   }
+}
+
+void loop()
+{
+  timeClient.update();
+  writeWifiStatus();
+
+  checkTemp();
+
+  time_t epochTime = timeClient.getEpochTime();
+  struct tm *ptm = gmtime((time_t *)&epochTime);
+
+  if (timeClient.isTimeSet())
+  {
+    int hour = ptm->tm_hour;
+    Serial.println(ptm->tm_isdst);
+    if (ptm->tm_isdst > 0)
+    {
+      if (hour == 23)
+      {
+        hour = 0;
+      }
+      else
+      {
+        hour++;
+      }
+    }
+
+    Serial.print("Hour: ");
+    Serial.println(hour);
+
+    int minute = ptm->tm_min;
+    Serial.print("Minute: ");
+    Serial.println(minute);
+
+    if (isBetweenHours(18, 22, hour, minute))
+    {
+      onTemp5 = 78;
+      offTemp5 = 80;
+    }
+    else
+    {
+      onTemp5 = 50;
+      offTemp5 = 50.5;
+    }
+  }
+
+  delay(1000);
 }
