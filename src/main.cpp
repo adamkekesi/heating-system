@@ -20,8 +20,8 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 int turnedOn4 = LOW;
 int turnedOn5 = LOW;
 
-int onTemp4 = 50;
-int offTemp4 = 39;
+float onTemp4 = 49.5;
+float offTemp4 = 49;
 
 int onTemp5 = 50;
 float offTemp5 = 50.5;
@@ -29,7 +29,6 @@ float offTemp5 = 50.5;
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("Adafruit MAX31865 PT100 Sensor Test!");
 
   pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
@@ -38,6 +37,7 @@ void setup()
 
   timeClient.begin();
   timeClient.setTimeOffset(3600);
+  Serial.println("Adafruit MAX31865 PT100 Sensor Test!");
   thermo.begin(MAX31865_4WIRE);
 }
 
@@ -163,6 +163,29 @@ bool isBetweenHours(int h1, int h2, int hour, int minute)
   }
 }
 
+int getHour(struct tm *tm)
+{
+  int hour = tm->tm_hour;
+
+  int month = tm->tm_mon;
+  int day = tm->tm_mday;
+
+  bool afterMarch26 = month > 2 || (month == 2 && day > 26);
+  bool beforeOct29 = month < 9 || (month == 9 && day < 29);
+
+  bool isSummerTime = afterMarch26 && beforeOct29;
+  if (!isSummerTime)
+  {
+    return hour;
+  }
+
+  if (hour == 23)
+  {
+    return 0;
+  }
+  return hour + 1;
+}
+
 void loop()
 {
   timeClient.update();
@@ -175,19 +198,7 @@ void loop()
 
   if (timeClient.isTimeSet())
   {
-    int hour = ptm->tm_hour;
-    Serial.println(ptm->tm_isdst);
-    if (ptm->tm_isdst > 0)
-    {
-      if (hour == 23)
-      {
-        hour = 0;
-      }
-      else
-      {
-        hour++;
-      }
-    }
+    int hour = getHour(ptm);
 
     Serial.print("Hour: ");
     Serial.println(hour);
