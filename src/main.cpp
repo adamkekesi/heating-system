@@ -7,10 +7,15 @@
 #include <ArduinoJson.h>
 #include <ESP8266WiFiMulti.h>
 #include "TimeService.h"
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 ESP8266WiFiMulti WiFiMulti;
 
 Adafruit_MAX31865 thermo = Adafruit_MAX31865(2);
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
 
 #define RREF 430.0
 #define RNOMINAL 100.0
@@ -20,7 +25,7 @@ int turnedOn = LOW;
 int onTemp = 42;
 int offTemp = 41;
 
-TimeService timeService(30 * 60 * 1000);
+/* TimeService timeService(30 * 60 * 1000); */
 
 void setup()
 {
@@ -32,6 +37,8 @@ void setup()
 
   WiFi.begin(SSID, PASSWORD);
 
+  timeClient.begin();
+  timeClient.setTimeOffset(3600);
   thermo.begin(MAX31865_4WIRE);
 }
 
@@ -112,16 +119,21 @@ void checkTemp()
 
 void loop()
 {
+  timeClient.update();
   writeWifiStatus();
 
   checkTemp();
 
-  if (WiFiMulti.run() == WL_CONNECTED)
-  {
-    
-    timeService.onLoop();
-  }
-  Serial.println(timeService.hour);
+  time_t epochTime = timeClient.getEpochTime();
+  struct tm *ptm = gmtime((time_t *)&epochTime);
 
-    delay(1000);
+  int hour = ptm->tm_hour;
+  Serial.print("Hour: ");
+  Serial.println(hour);
+
+  int minute = ptm->tm_min;
+  Serial.print("Minute: ");
+  Serial.println(minute);
+
+  delay(1000);
 }
