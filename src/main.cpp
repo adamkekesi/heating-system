@@ -20,8 +20,8 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 int turnedOn4 = LOW;
 int turnedOn5 = LOW;
 
-int onTemp4 = 42;
-int offTemp4 = 41;
+int onTemp4 = 50;
+int offTemp4 = 39;
 
 int onTemp5 = 50;
 float offTemp5 = 50.5;
