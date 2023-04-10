@@ -6,11 +6,8 @@
 #include <WiFiClient.h>
 #include <ArduinoJson.h>
 #include <ESP8266WiFiMulti.h>
-#include "TimeService.h"
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-
-ESP8266WiFiMulti WiFiMulti;
 
 Adafruit_MAX31865 thermo = Adafruit_MAX31865(2);
 
@@ -20,12 +17,14 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 #define RREF 430.0
 #define RNOMINAL 100.0
 
-int turnedOn = LOW;
+int turnedOn4 = LOW;
+int turnedOn5 = LOW;
 
-int onTemp = 42;
-int offTemp = 41;
+int onTemp4 = 42;
+int offTemp4 = 41;
 
-/* TimeService timeService(30 * 60 * 1000); */
+int onTemp5 = 50;
+float offTemp5 = 50.5;
 
 void setup()
 {
@@ -97,21 +96,34 @@ void checkTemp()
 {
   float temp = thermo.temperature(RNOMINAL, RREF);
 
-  if (temp > onTemp)
+  if (temp > onTemp4)
   {
-    turnedOn = HIGH;
+    turnedOn4 = HIGH;
   }
 
-  if (temp < offTemp)
+  if (temp < offTemp4)
   {
-    turnedOn = LOW;
+    turnedOn4 = LOW;
   }
 
-  digitalWrite(4, turnedOn);
-  digitalWrite(5, HIGH);
+  if (temp > onTemp5)
+  {
+    turnedOn5 = HIGH;
+  }
+
+  if (temp < offTemp5)
+  {
+    turnedOn5 = LOW;
+  }
+
+  digitalWrite(4, turnedOn4);
+  digitalWrite(5, turnedOn5);
 
   Serial.println(temp);
-  Serial.println(turnedOn);
+  Serial.print("4-es: ");
+  Serial.println(turnedOn4);
+  Serial.print("5-ös: ");
+  Serial.println(turnedOn5);
   Serial.println();
 
   checkTempSensorFault();
@@ -127,13 +139,73 @@ void loop()
   time_t epochTime = timeClient.getEpochTime();
   struct tm *ptm = gmtime((time_t *)&epochTime);
 
-  int hour = ptm->tm_hour;
-  Serial.print("Hour: ");
-  Serial.println(hour);
+  if (timeClient.isTimeSet())
+  {
+    int hour = ptm->tm_hour;
+    if (ptm->tm_isdst > 0)
+    {
+      if (hour == 23)
+      {
+        hour = 0;
+      }
+      else
+      {
+        hour++;
+      }
+    }
 
-  int minute = ptm->tm_min;
-  Serial.print("Minute: ");
-  Serial.println(minute);
+    Serial.print("Hour: ");
+    Serial.println(hour);
+
+    int minute = ptm->tm_min;
+    Serial.print("Minute: ");
+    Serial.println(minute);
+
+    if (isBetweenHours(18, 22, hour, minute))
+    {
+      onTemp5 = 78;
+      offTemp5 = 80;
+    }
+    else
+    {
+      onTemp5 = 50;
+      offTemp5 = 50.5;
+    }
+  }
 
   delay(1000);
+}
+
+bool isBetweenHours(int h1, int h2, int hour, int minute)
+{
+  if (h1 <= h2)
+  {
+    if (hour >= h1 && hour < h2)
+    {
+      return true;
+    }
+    else if (hour == h2 && minute == 0)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  else
+  {
+    if (hour >= h1 || hour < h2)
+    {
+      return true;
+    }
+    else if (hour == h2 && minute == 0)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 }
